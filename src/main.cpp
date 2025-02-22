@@ -24,6 +24,7 @@ BLEAdvertising *pAdvertising;  // global variable
 uint32_t delayMilliseconds = 1000;
 uint32_t fuseSeconds = 5;
 bool lovespouse_mode = true;
+bool lovespouse_shutdown = false;
 
 void setup() {
   Serial.begin(115200);
@@ -80,12 +81,18 @@ void loop() {
   // First decide short or long
   // 0 = long (headphones), 1 = short (misc stuff like Apple TV)
   if (lovespouse_mode) {
-    int index = random(3);
+    uint8_t* lovespousePacket;
+    if (lovespouse_shutdown) {
+      lovespousePacket = make_lovespouse_packet(stops[0]);
+    } else {
+      int index = random(3);
+      lovespousePacket = make_lovespouse_packet(plays[index]);
+    }
     #ifdef ESP_ARDUINO_VERSION_MAJOR
       #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
-          oAdvertisementData.addData(String((char*)SHORT_DEVICES[index], 23));
+          oAdvertisementData.addData(String((char*)SHORT_DEVICES[index], 22));
       #else
-          oAdvertisementData.addData(std::string((char*)make_lovespouse_packet(plays[index]), 22));
+          oAdvertisementData.addData(std::string((char*)lovespousePacket, 22));
       #endif
     #endif
   } else {

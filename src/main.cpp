@@ -85,8 +85,9 @@ void loop() {
     if (lovespouse_shutdown) {
       lovespousePacket = make_lovespouse_packet(stops[0]);
     } else {
-      // int index = random(3);
-      lovespousePacket = make_lovespouse_packet(plays[2]);
+      //int index = random(3);
+      int index = 2;
+      lovespousePacket = make_lovespouse_packet(plays[index]);
     }
     #ifdef ESP_ARDUINO_VERSION_MAJOR
       #if ESP_ARDUINO_VERSION >= ESP_ARDUINO_VERSION_VAL(3, 0, 0)
